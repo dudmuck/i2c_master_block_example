@@ -1,12 +1,9 @@
 # I2C master block transfer example
 Using [raspberry Pi](https://en.wikipedia.org/wiki/Raspberry_Pi) I2C with [STM32](https://www.st.com/en/ecosystems/stm32-nucleo.html?querycriteria=productId=SC2003) as slave, with block transfers up to 32 byte size.
-| Command | Description |
-| --- | --- |
-| git status | List all new or modified files |
-| git diff | Show file differences that haven't been staged |
+
 This example operates with slave [i2c_slave_block_example](https://os.mbed.com/users/dudmuck/code/i2c_slave_block_example/)
 
-Raspberry Pi I2C driver doesnt support SMBUS variable length read, so I2C block transfer is used.  Block length is mapped to command byte.
+Raspberry Pi I2C driver doesnt support SMBUS variable length read, so I2C block transfer is used.  Block length is mapped to command byte.  Functions ``i2c_smbus_write_i2c_block_data()`` and ``i2c_smbus_read_i2c_block_data()`` are used on this master side.
 
 # build instructions
 for raspberry pi
