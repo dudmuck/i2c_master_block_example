@@ -37,6 +37,24 @@ void i2c_service()
     } // ..while irq pin asserted
 }
 
+int write_test_buffer(const uint8_t* buf)
+{
+    int result;
+    result = i2c_smbus_write_i2c_block_data(fd, CMD_BUFFER, cmd_to_length[CMD_BUFFER], buf);
+    if (result < 0)
+        perror("write-CMD_BUFFER\n");
+    return result;
+}
+
+int read_test_buffer(uint8_t* buf)
+{
+    int result;
+    result = i2c_smbus_read_i2c_block_data(fd, CMD_BUFFER, cmd_to_length[CMD_BUFFER], buf);
+    if (result < 0)
+        perror("read-CMD_BUFFER\n");
+    return result;
+}
+
 int i2c_setup(uint8_t sa, unsigned irqPin)
 {
     if (wiringPiSetup () < 0) {

@@ -3,6 +3,7 @@
 #define CMD_TEST12              0x01
 #define CMD_TEST32              0x02
 #define CMD_IRQ                 0x03
+#define CMD_BUFFER              0x04
 
 typedef union {
     struct __attribute__((packed)) {

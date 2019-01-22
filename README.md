@@ -39,3 +39,5 @@ service irq..
 01 00 00 00 00 button:0 
 01 01 00 00 00 button:1```
 
+## i2c speed
+See [instructions](https://www.raspberrypi-spy.co.uk/2018/02/change-raspberry-pi-i2c-bus-speed/) on changing I2C speed.

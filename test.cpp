@@ -2,6 +2,8 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <time.h>
+#include <stdlib.h>
 #include "i2c_master.h"
 #include "cmds.h"
 
@@ -12,8 +14,12 @@
 
 int main(int argc, char* argv[])
 {
+    uint8_t test_buf[cmd_to_length[CMD_BUFFER]];
     int result;
 	bool svc_irq = false;
+	bool speed_test = false;
+    time_t now, start;
+    unsigned nbytes;
 
     if (i2c_setup(SLAVE_ADDRESS, IRQ_PIN) < 0) {
         printf("i2c_setup fail\n");
@@ -23,6 +29,7 @@ int main(int argc, char* argv[])
     if (argc < 2) {
         printf("%s i                        wait for IRQ\n", argv[0]);
         printf("%s [rw] <3 or 12 or 32>		read / write\n", argv[0]);
+        printf("%s st                       speed test\n", argv[0]);
         return -1;
     }
 
@@ -53,7 +60,7 @@ rwhelp:
                 printf("wrote %d\n", result);
         } else {
             result = i2c_smbus_read_i2c_block_data(fd, cmd, len, buf);
-            if (len < 0) {
+            if (result < 0) {
                 perror("i2c_smbus_read_i2c_block_data");
                 return -1;
             }
@@ -64,13 +71,56 @@ rwhelp:
         }
     } else if (argv[1][0] == 'i') {
         svc_irq = true;
+    } else if (argv[1][0] == 's' && argv[1][1] == 't') {
+        time_t start = time(NULL);
+        nbytes = 0;
+        srand(start);
+        svc_irq = true;
+        speed_test = true;
+        for (now = time(NULL); now == start;)
+            now = time(NULL);
     }
 
 	if (svc_irq) {
         printf("service irq..\n");
 		for (;;) {
     		i2c_service();
-			usleep(50000);
+            if (speed_test) {
+                time_t now = time(NULL);
+                if (now == start) {
+                    /* same second */
+                    int len;
+                    uint8_t buf[cmd_to_length[CMD_BUFFER]];
+                    len = read_test_buffer(buf);
+                    if (len < 0) {
+                        printf("read fail\n");
+                        speed_test = false;
+                    } else {
+                        if (memcmp(buf, test_buf, sizeof(test_buf)) != 0) {
+                            printf("memcmp fail\n");
+                            speed_test = false;
+                        } else
+                            nbytes += len;
+                    }
+                } else {
+                    /* new second */
+                    unsigned n, stop = sizeof(test_buf) >> 2;
+                    uint32_t* u32ptr;
+                    u32ptr = (uint32_t*)test_buf;
+                    for (n = 0; n < stop; n++)
+                        *u32ptr++ = rand();
+                    /*for (n = 0; n < 32; n++)
+                        printf("%02x ", test_buf[n]);
+                    printf("\n");*/
+                    if (write_test_buffer(test_buf) < 0)
+                        speed_test = false;
+
+                    start = now;
+                    printf("%u bytes per second\n", nbytes);
+                    nbytes = sizeof(test_buf);
+                }
+            } else
+			    usleep(50000);
 		}
 	}
 }
