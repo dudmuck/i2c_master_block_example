@@ -28,13 +28,13 @@ int main(int argc, char* argv[])
 
     if (argc < 2) {
         printf("%s i                        wait for IRQ\n", argv[0]);
-        printf("%s [rw] <3 or 12 or 32>		read / write\n", argv[0]);
+        printf("%s [rw] <3 or 12 or 32>	 [n_reps]	read / write\n", argv[0]);
         printf("%s st                       speed test\n", argv[0]);
         return -1;
     }
 
     if (argv[1][0] == 'r' || argv[1][0] == 'w') {
-        unsigned i, test, cmd, len;
+        unsigned rep, i, test, cmd, len, reps = 1;
         uint8_t buf[32];
         if (argc < 3) {
 rwhelp:
@@ -49,25 +49,32 @@ rwhelp:
             default: goto rwhelp;
         }
         len = cmd_to_length[cmd];
-        if (argv[1][0] == 'w') {
-            for (i = 0; i < len; i++)
-                buf[i] = i;
 
-            result = i2c_smbus_write_i2c_block_data(fd, cmd, len, buf);
-            if (result < 0)
-                perror("i2c_smbus_write_i2c_block_data");
-            else
-                printf("wrote %d\n", result);
-        } else {
-            result = i2c_smbus_read_i2c_block_data(fd, cmd, len, buf);
-            if (result < 0) {
-                perror("i2c_smbus_read_i2c_block_data");
-                return -1;
+        if (argv[3]) {
+            sscanf(argv[3], "%u", &reps);
+        }
+
+        for (rep = 0; rep < reps; rep++) {
+            if (argv[1][0] == 'w') {
+                for (i = 0; i < len; i++)
+                    buf[i] = i;
+
+                result = i2c_smbus_write_i2c_block_data(fd, cmd, len, buf);
+                if (result < 0)
+                    perror("test write");
+                else
+                    printf("%u wrote %d\n", rep, result);
+            } else {
+                result = i2c_smbus_read_i2c_block_data(fd, cmd, len, buf);
+                if (result < 0) {
+                    perror("i2c_smbus_read_i2c_block_data");
+                    return -1;
+                }
+                printf("%u test read %u: ", rep, result);
+                for (i = 0; i < len; i++)
+                    printf("%02x ", buf[i]);
+                printf("\n");
             }
-            printf("test read %u: ", result);
-            for (i = 0; i < len; i++)
-                printf("%02x ", buf[i]);
-            printf("\n");
         }
     } else if (argv[1][0] == 'i') {
         svc_irq = true;
@@ -121,7 +128,9 @@ rwhelp:
                 }
             } else
 			    usleep(50000);
-		}
-	}
+		} // ..for (;;)
+	} // ..if (svc_irq)
+
+    close(fd);
 }
 
